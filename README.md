@@ -1,2 +1,2 @@
 ## Permissions
-* `bouncyc4.use` - Players with this permission won't have explosives stick to their entities, but will instead bounce off.
+* `bouncyc4.use` - Explosives won't stick to the entities of players with this permission, but will instead bounce off.
