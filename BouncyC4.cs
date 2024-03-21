@@ -1,12 +1,14 @@
-﻿namespace Oxide.Plugins
+﻿using UnityEngine;
+
+namespace Oxide.Plugins
 {
-    [Info("Bouncy C4", "Dana", "1.0.0")]
-    [Description("Toss bouncy non-sticking explosives.")]
+    [Info("Bouncy C4", "VisEntities", "1.1.0")]
+    [Description("Throw non-sticking bouncy explosives.")]
     public class BouncyC4 : RustPlugin
     {
         #region Fields
 
-        private static BouncyC4 _instance;
+        private static BouncyC4 _plugin;
 
         #endregion Fields
 
@@ -14,52 +16,73 @@
 
         private void Init()
         {
-            _instance = this;
-            PermissionUtils.Register();
+            _plugin = this;
+            PermissionUtil.RegisterPermissions();
         }
 
         private void Unload()
         {
-            _instance = null;
+            _plugin = null;
         }
 
         private object CanExplosiveStick(TimedExplosive explosive, BaseEntity entity)
         {
             BasePlayer entityOwner = FindPlayerById(entity.OwnerID);
-            if (entityOwner != null && PermissionUtils.Verify(entityOwner))
+            if (entityOwner != null && PermissionUtil.VerifyHasPermission(entityOwner, PermissionUtil.USE))
+            {
+                Rigidbody rb = explosive.GetComponent<Rigidbody>();
+                if (rb == null)
+                    rb = explosive.gameObject.AddComponent<Rigidbody>();
+
+                Collider collider = explosive.gameObject.GetComponent<Collider>();
+                if (collider != null)
+                {
+                    collider.material = new PhysicMaterial
+                    {
+                        bounciness = 1.0f,
+                        bounceCombine = PhysicMaterialCombine.Maximum
+                    };
+                }
+
+                // Slow down the rotation over time.
+                rb.angularDrag = 0.05f;
+                // Random spin in all directions.
+                rb.angularVelocity = new Vector3(Random.Range(-15, 15), Random.Range(-15, 15), Random.Range(-15, 15));
+
                 return false;
+            }
 
             return null;
         }
 
         #endregion Oxide Hooks
 
-        #region Helper Classes
-
-        private static class PermissionUtils
-        {
-            public const string USE = "bouncyc4.use";
-
-            public static void Register()
-            {
-                _instance.permission.RegisterPermission(USE, _instance);
-            }
-
-            public static bool Verify(BasePlayer player, string permissionName = USE)
-            {
-                return _instance.permission.UserHasPermission(player.UserIDString, permissionName);
-            }
-        }
-
-        #endregion Helper Classes
-
         #region Helper Functions
 
-        private BasePlayer FindPlayerById(ulong playerId)
+        public static BasePlayer FindPlayerById(ulong playerId)
         {
             return RelationshipManager.FindByID(playerId);
         }
 
         #endregion Helper Functions
+
+        #region Utility Classes
+
+        private static class PermissionUtil
+        {
+            public const string USE = "bouncyc4.use";
+
+            public static void RegisterPermissions()
+            {
+                _plugin.permission.RegisterPermission(USE, _plugin);
+            }
+
+            public static bool VerifyHasPermission(BasePlayer player, string permissionName = USE)
+            {
+                return _plugin.permission.UserHasPermission(player.UserIDString, permissionName);
+            }
+        }
+
+        #endregion Utility Classes
     }
 }
